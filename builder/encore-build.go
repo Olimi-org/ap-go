@@ -43,12 +43,6 @@ func (b *Builder) Build() error {
 		"GOOS="+b.GOOS,
 	)
 
-	// Enable cacheprog experiment on all platforms except Windows;
-	// it's seemingly not supported there: we get weird build errors.
-	if b.GOOS != "windows" {
-		cmd.Env = append(cmd.Env, "GOEXPERIMENT=cacheprog")
-	}
-
 	return cmd.Run()
 }
 
@@ -71,8 +65,8 @@ func (b *Builder) CopyOutput() error {
 		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 			return err
 		}
-		if out, err := exec.Command("cp", src, dst).CombinedOutput(); err != nil {
-			return fmt.Errorf("copy go: %s", out)
+		if err := copyFile(src, dst); err != nil {
+			return fmt.Errorf("copy go binary from %s to %s: %w", src, dst, err)
 		}
 	} else {
 		filesToCopy = append(filesToCopy, join("bin", "go"+exe))
@@ -87,13 +81,13 @@ func (b *Builder) CopyOutput() error {
 		src := join(b.goroot, c)
 		dst := join(b.dst, c)
 		if _, err := os.Stat(src); err != nil {
-			return fmt.Errorf("copy %s: %v", c, err)
+			return fmt.Errorf("copy %s: %w", c, err)
 		}
 		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-			return err
+			return fmt.Errorf("create directory %s: %w", filepath.Dir(dst), err)
 		}
-		if out, err := exec.Command("cp", "-r", src, dst).CombinedOutput(); err != nil {
-			return fmt.Errorf("copy %s: %s", c, out)
+		if err := copyAll(src, dst); err != nil {
+			return fmt.Errorf("copy %s from %s to %s: %w", c, src, dst, err)
 		}
 	}
 

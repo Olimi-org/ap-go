@@ -34,6 +34,9 @@ jobs:
           - builder: windows-latest
             goos: windows
             goarch: amd64
+          - builder: windows-latest
+            goos: windows
+            goarch: arm64
 
     runs-on: ${{ matrix.builder }}
     outputs:
@@ -93,11 +96,17 @@ jobs:
       - name: "Download artifacts from build steps"
         uses: actions/download-artifact@v5
 
-      - name: "Convert windows artifact to zip"
+      - name: "Convert windows artifacts to zip"
         run: |
-          cd ${{needs.build.outputs.built_version}}-windows_amd64
-          tar -xzf *.tar.gz
-          zip -r ${{needs.build.outputs.built_version}}-windows_amd64.zip encore-go
+          VERSION="${{needs.build.outputs.built_version}}"
+          for dir in ${VERSION}-windows_*/; do
+            echo "Converting ${dir} to zip..."
+            cd "${dir}"
+            tar -xzf *.tar.gz
+            basename=$(basename "${dir}")
+            zip -r "${basename}.zip" encore-go
+            cd ..
+          done
 
       - name: "Move, rename and create checksums for the artifacts"
         run: |
