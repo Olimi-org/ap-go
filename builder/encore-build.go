@@ -14,7 +14,6 @@ type Builder struct {
 	goroot      string
 	gorootFinal string
 	dst         string
-	crossBuild  bool
 }
 
 func (b *Builder) PrepareWorkdir() error {
@@ -58,18 +57,19 @@ func (b *Builder) CopyOutput() error {
 	}
 
 	// Cross-compilation puts binaries under bin/goos_goarch instead.
-	if b.crossBuild {
-		// Copy go binary from bin/goos_goarch to bin/
-		src := join(b.goroot, "bin", key, "go")
-		dst := join(b.dst, "bin", "go")
-		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-			return err
-		}
-		if err := copyFile(src, dst); err != nil {
-			return fmt.Errorf("copy go binary from %s to %s: %w", src, dst, err)
-		}
-	} else {
-		filesToCopy = append(filesToCopy, join("bin", "go"+exe))
+	src := join(b.goroot, "bin", "go"+exe)
+
+	// Check if binary exists, otherwise try platform-specific subdirectory
+	if _, err := os.Stat(src); os.IsNotExist(err) {
+		src = join(b.goroot, "bin", key, "go"+exe)
+	}
+
+	dst := join(b.dst, "bin", "go"+exe)
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	if err := copyFile(src, dst); err != nil {
+		return fmt.Errorf("copy go binary from %s to %s: %w", src, dst, err)
 	}
 
 	filesToCopy = append(filesToCopy, all(join("pkg", "tool", key),
@@ -147,7 +147,6 @@ func BuildEncoreGo(goos, goarch, root, dst string) error {
 		GOARCH:     goarch,
 		goroot:     join(root, "go"),
 		dst:        join(dst, goos+"_"+goarch, "encore-go"),
-		crossBuild: runtime.GOOS != goos || runtime.GOARCH != goarch,
 	}
 
 	for _, f := range []func() error{
