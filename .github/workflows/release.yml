@@ -49,7 +49,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: "1.25"
           cache: true
 
       - name: "Create patched runtime"
@@ -103,7 +103,7 @@ jobs:
         run: |
           mkdir output
           VERSION="${{needs.build.outputs.built_version}}"
-          
+
           for dir in ${VERSION}-*/; do
             cd "${dir}"
             for file in *.tar.gz *.zip; do
@@ -114,7 +114,7 @@ jobs:
             done
             cd ..
           done
-          
+
           cd output
           sha256sum * > checksums.txt
           ls -R .
