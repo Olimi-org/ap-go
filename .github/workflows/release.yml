@@ -75,14 +75,17 @@ jobs:
           VERSION="${{ steps.encore_go_version.outputs.version }}"
           GOOS="${{ matrix.goos }}"
           GOARCH="${{ matrix.goarch }}"
-          echo "Creating artifact: ${VERSION}-${GOOS}_${GOARCH}.tar.gz"
-          tar -czvf "${VERSION}-${GOOS}_${GOARCH}.tar.gz" -C "dist/${GOOS}_${GOARCH}" .
+          ARCHIVE_NAME="${VERSION}-${GOOS}_${GOARCH}.tar.gz"
+          echo "Creating artifact: ${ARCHIVE_NAME}"
+          tar -czvf "${ARCHIVE_NAME}" -C "dist/${GOOS}_${GOARCH}" .
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
+        id: archive
 
       - name: "Upload build artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.encore_go_version.outputs.version }}-${{ matrix.goos }}_${{ matrix.goarch }}
-          path: ${{ steps.encore_go_version.outputs.version }}-${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+          name: ${{ steps.archive.outputs.ARCHIVE_NAME }}
+          path: ${{ steps.archive.outputs.ARCHIVE_NAME }}
   release:
     runs-on: ubuntu-22.04
     needs: build
@@ -93,18 +96,25 @@ jobs:
       - name: "Convert windows artifact to zip"
         run: |
           cd ${{needs.build.outputs.built_version}}-windows_amd64
-          tar -xzf ${{needs.build.outputs.built_version}}-windows_amd64.tar.gz
+          tar -xzf *.tar.gz
           zip -r ${{needs.build.outputs.built_version}}-windows_amd64.zip encore-go
 
       - name: "Move, rename and create checksums for the artifacts"
         run: |
           mkdir output
-          mv ${{needs.build.outputs.built_version}}-linux_amd64/${{needs.build.outputs.built_version}}-linux_amd64.tar.gz output/linux_x86-64.tar.gz
-          mv ${{needs.build.outputs.built_version}}-linux_arm64/${{needs.build.outputs.built_version}}-linux_arm64.tar.gz output/linux_arm64.tar.gz
-          mv ${{needs.build.outputs.built_version}}-darwin_amd64/${{needs.build.outputs.built_version}}-darwin_amd64.tar.gz output/macos_x86-64.tar.gz
-          mv ${{needs.build.outputs.built_version}}-darwin_arm64/${{needs.build.outputs.built_version}}-darwin_arm64.tar.gz output/macos_arm64.tar.gz
-          mv ${{needs.build.outputs.built_version}}-windows_amd64/${{needs.build.outputs.built_version}}-windows_amd64.tar.gz output/windows_x86-64.tar.gz
-          mv ${{needs.build.outputs.built_version}}-windows_amd64/${{needs.build.outputs.built_version}}-windows_amd64.zip output/windows_x86-64.zip
+          VERSION="${{needs.build.outputs.built_version}}"
+          
+          for dir in ${VERSION}-*/; do
+            cd "${dir}"
+            for file in *.tar.gz *.zip; do
+              if [ -f "${file}" ]; then
+                basename="${file#${VERSION}-}"
+                mv "${file}" "../output/${basename}"
+              fi
+            done
+            cd ..
+          done
+          
           cd output
           sha256sum * > checksums.txt
           ls -R .
@@ -122,10 +132,6 @@ jobs:
           draft: false
           prerelease: ${{ github.event.inputs.prerelease }}
           files: |
-            linux_x86-64.tar.gz
-            linux_arm64.tar.gz
-            windows_x86-64.tar.gz
-            windows_x86-64.zip
-            macos_arm64.tar.gz
-            macos_x86-64.tar.gz
+            *.tar.gz
+            *.zip
             checksums.txt
