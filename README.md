@@ -15,7 +15,7 @@ This system produces [reproducible builds](https://reproducible-builds.org/) of 
    (Note: instead of a Go version number, you can pass in `master` to build against the latest Go development commit)
 3. Run our build script using; `go run . --goos "darwin" --goarch "arm64"`
    (replacing the OS and arch parameters to match your requirement)
-4. Verify your go was build; `./dist/darwin_arm64/encore-go/bin/go version`
+4. Verify your go was build; `./dist/darwin_arm64/ap-go/bin/go version`
     The output you see should look like this, looking for the `encore-go` string;
    `go version encore-go1.17.6 encore-go1.17-4d15582aff Thu Jan 6 19:06:43 2022 +0000 darwin/arm64`
 

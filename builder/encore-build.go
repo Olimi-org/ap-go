@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
 )
 
 type Builder struct {
@@ -126,7 +125,7 @@ func all(src string, all ...string) []string {
 
 func BuildEncoreGo(goos, goarch, root, dst string) error {
 	if _, err := os.Stat(filepath.Join(root, "go", "src", "make.bash")); err != nil {
-		return fmt.Errorf("unexpected location for build script, expected in encore-go root")
+		return fmt.Errorf("unexpected location for build script, expected in ap-go root")
 	}
 
 	if err := os.Chdir(root); err != nil {
@@ -143,10 +142,10 @@ func BuildEncoreGo(goos, goarch, root, dst string) error {
 	}
 
 	b := &Builder{
-		GOOS:       goos,
-		GOARCH:     goarch,
-		goroot:     join(root, "go"),
-		dst:        join(dst, goos+"_"+goarch, "encore-go"),
+		GOOS:   goos,
+		GOARCH: goarch,
+		goroot: join(root, "go"),
+		dst:    join(dst, goos+"_"+goarch, "ap-go"),
 	}
 
 	for _, f := range []func() error{

@@ -104,7 +104,7 @@ jobs:
             cd "${dir}"
             tar -xzf *.tar.gz
             basename=$(basename "${dir}")
-            zip -r "${basename}.zip" encore-go
+            zip -r "${basename}.zip" ap-go
             cd ..
           done
 
